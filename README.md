@@ -1,5 +1,12 @@
 # Sandbox Migration Shield
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![ServiceNow](https://img.shields.io/badge/ServiceNow-Zurich%2B-blue)](https://www.servicenow.com)
+[![Status](https://img.shields.io/badge/Status-Active%20Development-green)]()
+[![Scoped App](https://img.shields.io/badge/Scoped%20App-x__snc__sms-orange)]()
+[![Deployed](https://img.shields.io/badge/Deployed-dev362840.service--now.com-brightgreen)]()
+
+
 > **Tagline:** Don't let KB2944435 break your instance. Scan, migrate, and secure your server-side JavaScript — before ServiceNow blocks it.
 
 ## Elevator Pitch
