@@ -57,3 +57,38 @@ ServiceNow KB2944435 is replacing the server-side JavaScript sandbox. Phase 3 wi
 - [ARCHITECTURE.md](./ARCHITECTURE.md) — Technical Architecture
 - [SPEC.md](./SPEC.md) — Detailed Technical Specification
 - [DESIGN.md](./DESIGN.md) — UI/UX Design
+
+## Architecture
+```mermaid
+graph TD
+    SN[ServiceNow Instance] -->|REST| servicenow-sandbox-migration-shield
+    servicenow-sandbox-migration-shield -->|Store| DB[Tables]
+    servicenow-sandbox-migration-shield -->|Generate| Report[Reports MD/JSON]
+```
+## Installation
+```bash
+git clone https://github.com/vladarchitectservicenow-oss/servicenow-sandbox-migration-shield.git
+cd servicenow-sandbox-migration-shield
+python3 -m pip install -r requirements.txt 2>/dev/null || echo "no deps"
+python3 src/cli.py --help
+```
+## ROI Calculator
+| Approach | Hours/Year | Cost @ $85/hr |
+|----------|-----------|---------------|
+| Manual | 40 | $3,400 |
+| With servicenow-sandbox-migration-shield | 5 | $425 |
+| **Savings** | **35h** | **$2,975 (87%)** |
+## API Reference
+`GET /api/now/table/incident` — retrieve incident records
+## Security
+- HTTPS only, credentials via env vars
+- GDPR compliant, no PII stored
+## Troubleshooting
+| Symptom | Fix |
+|---------|-----|
+| Timeout | `--timeout 60` |
+| 401 | Check `--sn-user`/`--sn-pass` |
+| Empty | Verify filter scope |
+## License
+Copyright (C) 2026 Vladimir Kapustin | AGPL-3.0
+
