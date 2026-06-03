@@ -1,6 +1,16 @@
-# Regression Cases: servicenow-sandbox-migration-shield
+# Regression Cases — Sandbox Migration Shield
 
-1. **Idempotent execution** — re-run produces same results
-2. **Format consistency** — reports identical across runs
-3. **Role idempotency** — duplicate assignment handled
-4. **Config persistence** — settings survive restart
+## Test Matrix
+
+| Case | Component | Target | Precondition | Steps | Expected | Priority |
+|------|-----------|--------|--------------|-------|----------|----------|
+| R01 | SandboxScanner | All 6 tables produce results | Pre-KB2944435 instance with 100+ scripts across all tables | Run full scan. For each table in [sys_script, sys_script_include, sys_script_client, sys_ui_policy, sys_ui_action, sys_dictionary], assert `gr.getRowCount() > 0` in scan results. | All 6 tables return at least 1 scan_result. No table silently skipped. | P0 |
+| R02 | SandboxScanner | BLOCKING patterns not degraded by release upgrade | Zurich instance with known `Packages.java` scripts | Run scan. Check that scripts with `Packages.java.lang.*` are classified as BLOCKING, not downgraded to WARNING. | All Package references correctly BLOCKING. No regression in severity classification. | P0 |
+| R03 | SandboxScanner | Pagination does NOT skip records on >500 scripts | Instance with 3000+ scripts in sys_script table | Run full scan with setLimit(500). Verify total scanned = exact row count from `SELECT COUNT(*) FROM sys_script`. Compare scan_run.total_scripts against actual table count. | scan_run.total_scripts matches actual database count. No records lost between pagination pages. | P1 |
+| R04 | MigrationEngine | Rollback restores byte-exact original | Script containing multi-byte UTF-8 characters (Russian, Japanese), special chars (\n, \t, \r), and template literals | Migrate script → verify new SI created → rollback → read source script field. Compare byte-for-byte with stored original in scan_result.source_code_snippet. | Byte-exact match. No character encoding corruption, no whitespace loss, no escape sequence mangling. | P0 |
+| R05 | MigrationEngine | Migration of inline expression produces valid replacement | Dictionary default_value field: `current.assigned_to.getDisplayValue() \|\| "Unassigned"` | Preview migration → verify generated SI function returns same value. Execute → verify field still produces same output. | Replacement call `new x_snc_sms.DictMigrated().getDefault(current)` returns identical value to original inline expression. | P1 |
+| R06 | ExemptionManager | Exemption expiry auto-transition does NOT affect other exemptions | Database has 3 exemptions: APPROVED (expires tomorrow), APPROVED (expires in 6 months), and PENDING | Run getExpiringExemptions(30). Verify only the one expiring tomorrow transitions to EXPIRED. | Exactly 1 exemption transitions. The 6-month and PENDING exemptions unchanged. | P1 |
+| R07 | REST API | Scan endpoint handles concurrent requests gracefully | 3 simultaneous POST /api/x_snc_sms/v1/scan requests | Send 3 parallel requests. Verify exactly 1 returns success with scan_run_id; other 2 return HTTP 409 with "Scan already in progress" message. | Singleton lock works under load. No duplicate scan_run records created. HTTP status codes correct. | P1 |
+| R08 | Dashboard | Readiness score recalculated after bulk exemption approval | Database: 1000 scripts, 200 BLOCKING, 100 exempted. Score should be (800 + 100) / 1000 = 90%. | Approve 10 new exemptions → expect score = (800 - 10 + 110) / 1000 = 90%. Verify before and after. | Score formula consistent: exclude exempted from blocked count. No off-by-one errors. | P1 |
+| R09 | All | No data loss after PDI hibernation cycle | PDI hibernates → wakes → scan run scheduled | After PDI wake: trigger weekly scheduled scan. Verify all custom tables still exist, indexes intact, ACLs unchanged. | Hibernation does not corrupt custom tables or ACLs. Scan completes successfully. | P2 |
+| R10 | Scheduled Jobs | Weekly scan fires on Sunday 02:00 without manual trigger | sys_trigger record exists with next_action = next Sunday 02:00 | Wait for scheduled execution (or manually fire via sys_trigger.executeNow). Verify scan_run created with scan_type=FULL, started_at within window. | Scan runs automatically. No manual intervention needed. Results written to scan_result table. | P2 |
